@@ -1,10 +1,37 @@
+use std::cmp::Ordering;
+
 use strum_macros::Display;
 
 fn main() {
-    let song = Song { keys: vec![Key::from_index(0)] };
-    let new_song = song.translate_up(2);
-    let new_song_root = &new_song.keys[0].root;
-    println!("{new_song_root}")
+    let song = Song { keys: vec![Key::from_index(2)] };
+    let translation_options = optimize(&song);
+    print!("your song was ");
+    song.print();
+    println!("");
+    for song in translation_options {
+        song.print();
+        println!("");
+    }
+}
+
+fn order_by_caged_keys(a: &Song, b: &Song) -> Ordering {
+    let a_count = a.count_caged_keys();
+    let b_count = b.count_caged_keys();
+    if a_count == b_count {
+        return Ordering::Equal
+    } else if a_count > b_count {
+        return Ordering::Greater
+    } else {
+        return Ordering::Less
+    }
+}
+
+fn optimize(song: &Song) -> Vec<Song> {
+    let mut transpositions_vec: Vec<Song> = (0..5).map(|i| song.translate_up(i))
+                                                  .filter(|i| i.keys.iter().any(|key| key.is_caged_key()))
+                                                  .collect();
+    transpositions_vec.sort_by(order_by_caged_keys);
+    return transpositions_vec
 }
 
 struct Song {
@@ -16,8 +43,26 @@ impl Song {
         let new_keys = self.keys.iter().map(|key| key.translate_up(steps)).collect();
         return Song { keys: new_keys }
     }
+
+    fn count_caged_keys(&self) -> i32 {
+        let mut acc = 0;
+        for key in self.keys.iter() {
+            if key.is_caged_key() {
+                acc += 1
+            }
+        }
+        return acc
+    }
+
+    fn print(&self) {
+        for key in self.keys.iter() {
+            let root = &key.root;
+            print!(" {root}");
+        }
+    }
 }
 
+#[derive(PartialEq)]
 #[derive(Display)]
 enum Note {
     A,
@@ -40,24 +85,6 @@ struct Key {
 }
 
 impl Key {
-    fn from_root(root: Note) -> Key {
-        let chromatic_index = match root {
-            Note::A => 0,
-            Note::Bb => 1,
-            Note::B => 2,
-            Note::C => 3,
-            Note::Db => 4,
-            Note::D => 5,
-            Note::Eb => 6,
-            Note::E => 7,
-            Note::F => 8,
-            Note::Gb => 9,
-            Note::G => 10,
-            Note::Ab => 11
-        };
-        return Key { chromatic_index, root }
-    }
-
     fn from_index(chromatic_index: i32) -> Key {
         let root = match chromatic_index {
             0 => Note::A,
@@ -84,5 +111,10 @@ impl Key {
         }
 
         return Key::from_index(new_index)
+    }
+
+    fn is_caged_key(&self) -> bool {
+        let caged_keys = vec![Note::C, Note::A, Note::G, Note::E, Note::D];
+        return caged_keys.iter().any(|i| i == &self.root)
     }
 }
