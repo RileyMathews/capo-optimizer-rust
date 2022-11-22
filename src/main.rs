@@ -28,7 +28,7 @@ fn order_by_caged_keys(a: &Song, b: &Song) -> Ordering {
 
 fn optimize(song: &Song) -> Vec<Song> {
     let mut transpositions_vec: Vec<Song> = (0..5).map(|i| song.translate_up(i))
-                                                  .filter(|i| i.keys.iter().any(|key| key.is_caged_key()))
+                                                  .filter(|song| song.has_any_caged_keys())
                                                   .collect();
     transpositions_vec.sort_by(order_by_caged_keys);
     return transpositions_vec
@@ -52,6 +52,10 @@ impl Song {
             }
         }
         return acc
+    }
+
+    fn has_any_caged_keys(&self) -> bool {
+        return self.keys.iter().any(|key| key.is_caged_key())
     }
 
     fn print(&self) {
